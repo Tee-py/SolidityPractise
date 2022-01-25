@@ -38,9 +38,38 @@ contract Auction{
         _;
     }
 
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
+
+    function min(uint a, uint b) pure internal returns(uint){
+        if(a <= b){
+            return a;
+        } else {
+            return b;
+        }
+    }
+
     function placeBid() public payable notOwner afterStart beforeEnd {
         require(auctionState == State.Running);
         require(msg.value >= 100);
+
+        uint currentBid = bids[msg.sender] + msg.value;
+        require(currentBid <= bids[highestBidder]);
+
+        bids[msg.sender] = currentBid;
+
+        if (currentBid <= bids[highestBidder]){
+            highestBindingBid = min(currentBid + bidIncrement, bids[highestBidder]);
+        } else {
+            highestBindingBid = min(currentBid, bids[highestBidder] + bidIncrement);
+            highestBidder = payable(msg.sender);
+        }
+    }
+
+    function cancelAuction() public onlyOwner {
+        auctionState = State.Cancelled;
     }
 
     
